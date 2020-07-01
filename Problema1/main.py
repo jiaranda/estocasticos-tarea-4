@@ -20,6 +20,7 @@ class Simulation:
         self.time_empty = 0
         self.queue_history = list()
         self.clients_ready = 0
+        self.system_history = list()
         # events
         self.clients_arrivals = list()
         self.clients_product_selection = list()
@@ -32,6 +33,7 @@ class Simulation:
         self.clients_per_day = list()
         self.time_in_queue = list()
         self.queue_length_per_day = list()
+        self.system_empty_per_day = list()
 
 
     def prepare(self):
@@ -42,6 +44,11 @@ class Simulation:
         self.queue_history.append({
             "from": self.time,
             "length": 0
+        })
+
+        self.system_history.append({
+            "from": self.time,
+            "qty": 0
         })
 
         self.client_params = {
@@ -104,6 +111,13 @@ class Simulation:
             self.clients_product_selection.append(client)
             self.clients_product_selection.sort(key=lambda c: c.products_ready_time)
             self.clients_inside.append(client)
+
+            self.system_history[-1]["to"] = self.time
+            self.system_history.append({
+                "from": self.time,
+                "qty": len(self.clients_inside)
+            })
+
             self.generate_client()
 
     def handle_client_product_selection(self):
@@ -137,6 +151,12 @@ class Simulation:
         self.clients_inside.remove(cashier.current_client)
         cashier.client_ready()
         self.clients_ready += 1
+
+        self.system_history[-1]["to"] = self.time
+        self.system_history.append({
+            "from": self.time,
+            "qty": len(self.clients_inside)
+        })
 
         if len(self.clients_queue) != 0:
             client = self.clients_queue.pop(0)
@@ -223,22 +243,37 @@ class Simulation:
                     time_sum += t
                     length_sum += t * reg["length"]
             self.queue_length_per_day.append(length_sum/time_sum)
-            
+
+            # time with 0 clients
+            time_sum = 0
+            for reg in self.system_history:
+                if reg.get("to") and reg.get("from") and reg["qty"] == 0:
+                    t = reg["to"] - reg["from"]
+                    time_sum += t
+            self.system_empty_per_day.append(time_sum)
 
 
     
     def analytics(self):
         print("a) Cantidad de clientes atendidos en en un día promedio")
         # print(self.clients_per_day)
-        print(f'{sum(self.clients_per_day)/len(self.clients_per_day)} clientes')
+        res = sum(self.clients_per_day)/len(self.clients_per_day)
+        print(f'{res} clientes')
 
         print("b) Tiempo promedio de un cliente en la cola")
         time_in_seconds = sum(self.time_in_queue) / len(self.time_in_queue)
         time_in_minutes = time_in_seconds / 60
-        print(f'{round(time_in_minutes, 3)} minutos')
+        res = round(time_in_minutes, 3)
+        print(f'{res} minutos')
 
         print("c) Largo promedio de la cola en un dia cualquiera")
-        print(f'{round(sum(self.queue_length_per_day) / len(self.queue_length_per_day), 3)} clientes')
+        res = round(sum(self.queue_length_per_day) / len(self.queue_length_per_day), 3)
+        print(f'{res} clientes')
+
+        print("d) Tiempo en el que la tienda esta vacia en un dia promedio")
+        res = sum(self.system_empty_per_day) / len(self.system_empty_per_day)
+        res = round(res / 60, 3)
+        print(f'{res} minutos')
 
 
 if __name__ == "__main__":
