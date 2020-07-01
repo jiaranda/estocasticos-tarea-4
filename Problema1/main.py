@@ -31,12 +31,18 @@ class Simulation:
         # analytics
         self.clients_per_day = list()
         self.time_in_queue = list()
+        self.queue_length_per_day = list()
 
 
     def prepare(self):
         self.time = 60 * 60 * 10 # 10:00:00, seconds from 00:00:00
         self.end_time = 60 * 60 * 22 # 22:00:00, seconds from 00:00:00
         self.system_capacity = 30 # clients inside
+
+        self.queue_history.append({
+            "from": self.time,
+            "length": 0
+        })
 
         self.client_params = {
             "arrival_10_to_12_distr": uniform_instance_generator(60 * 2, 60 * 3),
@@ -120,7 +126,11 @@ class Simulation:
         else: # all cashiers busy, go to the queue
             client.time_started_queue = self.time
             self.clients_queue.append(client)
-            self.queue_history.append(client)
+            self.queue_history[-1]["to"] = self.time
+            self.queue_history.append({
+                "from": self.time,
+                "length": len(self.clients_queue)
+            })
             
     def handle_cashier_ready(self, cashier):
         self.time = cashier.client_ready_time
@@ -131,6 +141,13 @@ class Simulation:
         if len(self.clients_queue) != 0:
             client = self.clients_queue.pop(0)
             client.time_ended_queue = self.time
+
+            self.queue_history[-1]["to"] = self.time
+            self.queue_history.append({
+                "from": self.time,
+                "length": len(self.clients_queue)
+            })
+
             self.time_in_queue.append(client.time_ended_queue - client.time_started_queue)
             free_cashiers = list()
             if self.cashier1.current_client == None:
@@ -194,17 +211,34 @@ class Simulation:
                         cashier = self.cashier3
                     self.handle_cashier_ready(cashier)
             
+            # clients per day
             self.clients_per_day.append(self.clients_ready)
+
+            # queue length mean per day
+            length_sum = 0
+            time_sum = 0
+            for reg in self.queue_history:
+                if reg.get("to") and reg.get("from"):
+                    t = reg["to"] - reg["from"]
+                    time_sum += t
+                    length_sum += t * reg["length"]
+            self.queue_length_per_day.append(length_sum/time_sum)
+            
+
+
     
     def analytics(self):
         print("a) Cantidad de clientes atendidos en en un día promedio")
         # print(self.clients_per_day)
-        print(sum(self.clients_per_day)/len(self.clients_per_day))
+        print(f'{sum(self.clients_per_day)/len(self.clients_per_day)} clientes')
 
         print("b) Tiempo promedio de un cliente en la cola")
         time_in_seconds = sum(self.time_in_queue) / len(self.time_in_queue)
         time_in_minutes = time_in_seconds / 60
         print(f'{round(time_in_minutes, 3)} minutos')
+
+        print("c) Largo promedio de la cola en un dia cualquiera")
+        print(f'{round(sum(self.queue_length_per_day) / len(self.queue_length_per_day), 3)} clientes')
 
 
 if __name__ == "__main__":
