@@ -21,6 +21,7 @@ class Simulation:
         self.queue_history = list()
         self.clients_ready = 0
         self.system_history = list()
+        self.cashiers_history = list()
         # events
         self.clients_arrivals = list()
         self.clients_product_selection = list()
@@ -34,6 +35,7 @@ class Simulation:
         self.time_in_queue = list()
         self.queue_length_per_day = list()
         self.system_empty_per_day = list()
+        self.cashiers_busy_per_day = list()
 
 
     def prepare(self):
@@ -49,6 +51,11 @@ class Simulation:
         self.system_history.append({
             "from": self.time,
             "qty": 0
+        })
+
+        self.cashiers_history.append({
+            "from": self.time,
+            "all_busy": False
         })
 
         self.client_params = {
@@ -136,6 +143,13 @@ class Simulation:
             selected_cashier.current_client = client
             selected_cashier.calculate_client_ready_time(self.time)
 
+            self.cashiers_history[-1]["to"] = self.time
+            self.cashiers_history.append({
+                "from": self.time,
+                "all_busy": (self.cashier1.current_client != None and self.cashier2.current_client != None and self.cashier3.current_client != None)
+            })
+            
+
         
         else: # all cashiers busy, go to the queue
             client.time_started_queue = self.time
@@ -180,6 +194,12 @@ class Simulation:
             selected_cashier = random.choice(free_cashiers)
             selected_cashier.current_client = client
             selected_cashier.calculate_client_ready_time(self.time)
+
+        self.cashiers_history[-1]["to"] = self.time
+        self.cashiers_history.append({
+            "from": self.time,
+            "all_busy": (self.cashier1.current_client != None and self.cashier2.current_client != None and self.cashier3.current_client != None)
+        })
     
     def reset_simulation(self):
         self.time = None
@@ -194,6 +214,8 @@ class Simulation:
         self.time_empty = 0
         self.queue_history = list()
         self.clients_ready = 0
+        self.system_history = list()
+        self.cashiers_history = list()
         # events
         self.clients_arrivals = list()
         self.clients_product_selection = list()
@@ -251,6 +273,18 @@ class Simulation:
                     t = reg["to"] - reg["from"]
                     time_sum += t
             self.system_empty_per_day.append(time_sum)
+            
+            # time that all cashiers are busy
+            busy_time_sum = 0
+            time_sum = 0
+            for reg in self.cashiers_history:
+                if reg.get("to") and reg.get("from"):
+                    t = reg["to"] - reg["from"]
+                    time_sum += t
+                    if reg["all_busy"]:
+                        busy_time_sum += t
+            self.cashiers_busy_per_day.append(busy_time_sum / time_sum)
+
 
 
     
@@ -274,6 +308,12 @@ class Simulation:
         res = sum(self.system_empty_per_day) / len(self.system_empty_per_day)
         res = round(res / 60, 3)
         print(f'{res} minutos')
+
+        print("e) Probabilidad que los tres cajeros esten ocupados en un momento cualquiera")
+        res = round(sum(self.cashiers_busy_per_day) / len(self.cashiers_busy_per_day), 3)
+        print(f'La probabilidad es {res}')
+
+
 
 
 if __name__ == "__main__":
