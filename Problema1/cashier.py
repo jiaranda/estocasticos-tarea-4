@@ -5,8 +5,9 @@ class Cashier:
         self.attention_20_to_22_distr = attention_20_to_22_distr
         self.time_free = 0
         self.current_client = None
+        self.client_ready_time = None
 
-    def client_ready_time(self, time):
+    def calculate_client_ready_time(self, time):
         res = time
         for _ in range(self.current_client.products_qty):
             if 60 * 60 * 10 <= res <= 60 * 60 * 14:
@@ -16,4 +17,9 @@ class Cashier:
             elif 60 * 60 * 20 < res <= 60 * 60 * 22:
                 time_per_product = self.attention_20_to_22_distr()
             res += time_per_product
+        self.client_ready_time = res
         return res
+    
+    def client_ready(self):
+        self.current_client = None
+        self.client_ready_time = None

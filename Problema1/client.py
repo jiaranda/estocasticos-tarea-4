@@ -7,6 +7,10 @@ class Client:
         self.products_qty = int(products_qty_distr())
         self.arrival_time = None
         self.products_ready_time = None
+        self.time_started_queue = None
+        self.time_ended_queue = None
+
+
     
     def calculate_arrival_time(self, time):
         print(time)
