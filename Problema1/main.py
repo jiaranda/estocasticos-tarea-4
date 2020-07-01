@@ -19,6 +19,7 @@ class Simulation:
         self.clients_lost = 0
         self.time_empty = 0
         self.queue_history = list()
+        self.clients_ready = 0
         # events
         self.clients_arrivals = list()
         self.clients_product_selection = list()
@@ -27,10 +28,12 @@ class Simulation:
         self.cashier3_ready = None
         # params
         self.client_params = None
+        # analytics
+        self.clients_per_day = list()
+        self.time_in_queue = list()
+
 
     def prepare(self):
-        print("Preparing Simulation")
-
         self.time = 60 * 60 * 10 # 10:00:00, seconds from 00:00:00
         self.end_time = 60 * 60 * 22 # 22:00:00, seconds from 00:00:00
         self.system_capacity = 30 # clients inside
@@ -123,10 +126,12 @@ class Simulation:
         self.time = cashier.client_ready_time
         self.clients_inside.remove(cashier.current_client)
         cashier.client_ready()
+        self.clients_ready += 1
 
         if len(self.clients_queue) != 0:
             client = self.clients_queue.pop(0)
             client.time_ended_queue = self.time
+            self.time_in_queue.append(client.time_ended_queue - client.time_started_queue)
             free_cashiers = list()
             if self.cashier1.current_client == None:
                 free_cashiers.append(self.cashier1)
@@ -138,45 +143,73 @@ class Simulation:
             selected_cashier = random.choice(free_cashiers)
             selected_cashier.current_client = client
             selected_cashier.calculate_client_ready_time(self.time)
+    
+    def reset_simulation(self):
+        self.time = None
+        self.end_time = None
+        self.system_capacity = None
+        self.cashier1 = None
+        self.cashier2 = None
+        self.cashier3 = None
+        self.clients_inside = list()
+        self.clients_queue = list()
+        self.clients_lost = 0
+        self.time_empty = 0
+        self.queue_history = list()
+        self.clients_ready = 0
+        # events
+        self.clients_arrivals = list()
+        self.clients_product_selection = list()
+        self.cashier1_ready = None
+        self.cashier2_ready = None
+        self.cashier3_ready = None
+        # params
+        self.client_params = None
 
 
-    def run(self):
-        print("Running")
-        # generate first client
-        self.generate_client()
-        while self.time <= self.end_time:
-            print("time: ", self.time)
-            print("client qty: ", len(self.clients_inside))
+    def run(self, number_of_simulations):
+        for _ in range(number_of_simulations):
+            self.reset_simulation()
+            self.prepare()
+            # generate first client
+            self.generate_client()
+            while self.time <= self.end_time:
+                # get next event
+                events = self.get_possible_events()
+                next_event = min(events, key=events.get)
+                if events[next_event] > self.end_time:
+                    break
+                if next_event == "client_arrival":
+                    self.handle_client_arrival()
+                    
+                elif next_event == "client_product_selection":
+                    self.handle_client_product_selection()
+                    
+                elif next_event in ["cashier1_ready", "cashier2_ready", "cashier3_ready"]:
+                    if next_event == "cashier1_ready":
+                        cashier = self.cashier1
+                    elif next_event == "cashier2_ready":
+                        cashier = self.cashier2
+                    elif next_event == "cashier3_ready":
+                        cashier = self.cashier3
+                    self.handle_cashier_ready(cashier)
+            
+            self.clients_per_day.append(self.clients_ready)
+    
+    def analytics(self):
+        print("a) Cantidad de clientes atendidos en en un día promedio")
+        # print(self.clients_per_day)
+        print(sum(self.clients_per_day)/len(self.clients_per_day))
 
-            # get next event
-            events = self.get_possible_events()
-            next_event = min(events, key=events.get)
-            print(events)
-            if events[next_event] > self.end_time:
-                break
-            if next_event == "client_arrival":
-                print("Event: arrival")
-                self.handle_client_arrival()
-                
-            elif next_event == "client_product_selection":
-                print("Event: selection")
-                self.handle_client_product_selection()
-                
-            elif next_event in ["cashier1_ready", "cashier2_ready", "cashier3_ready"]:
-                if next_event == "cashier1_ready":
-                    cashier = self.cashier1
-                elif next_event == "cashier2_ready":
-                    cashier = self.cashier2
-                elif next_event == "cashier3_ready":
-                    cashier = self.cashier3
-                print("Event: cashier ready")
-                self.handle_cashier_ready(cashier)
-        print("final time: ", self.time)
+        print("b) Tiempo promedio de un cliente en la cola")
+        time_in_seconds = sum(self.time_in_queue) / len(self.time_in_queue)
+        time_in_minutes = time_in_seconds / 60
+        print(f'{round(time_in_minutes, 3)} minutos')
 
 
 if __name__ == "__main__":
     simulation = Simulation()
-    simulation.prepare()
-    simulation.run()
+    simulation.run(100)
+    simulation.analytics()
 
         

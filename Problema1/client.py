@@ -13,7 +13,6 @@ class Client:
 
     
     def calculate_arrival_time(self, time):
-        print(time)
         if 60 * 60 * 10 <= time <= 60 * 60 * 12:
             t = time + self.arrival_10_to_12_distr()
         elif 60 * 60 * 12 < time <= 60 * 60 * 16:
