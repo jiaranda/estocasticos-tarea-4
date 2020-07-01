@@ -36,6 +36,7 @@ class Simulation:
         self.queue_length_per_day = list()
         self.system_empty_per_day = list()
         self.cashiers_busy_per_day = list()
+        self.clients_lost_per_day = list()
 
 
     def prepare(self):
@@ -285,7 +286,8 @@ class Simulation:
                         busy_time_sum += t
             self.cashiers_busy_per_day.append(busy_time_sum / time_sum)
 
-
+            # clients lost per day
+            self.clients_lost_per_day.append(self.clients_lost)
 
     
     def analytics(self):
@@ -312,6 +314,10 @@ class Simulation:
         print("e) Probabilidad que los tres cajeros esten ocupados en un momento cualquiera")
         res = round(sum(self.cashiers_busy_per_day) / len(self.cashiers_busy_per_day), 3)
         print(f'La probabilidad es {res}')
+
+        print("f) Cantidad de clientes perdidos en un dia porque el local estaba lleno")
+        res = round(sum(self.clients_lost_per_day) / len(self.clients_lost_per_day), 3)
+        print(f'{res} clientes')
 
 
 
