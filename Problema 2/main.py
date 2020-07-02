@@ -13,7 +13,7 @@ def instance_generator():
 if __name__ == "__main__":
     data = list()
     gen = instance_generator()
-    for i in range(10000):
+    for i in range(100):
         data.append(gen())
     plt.hist(data, density=True)
     plt.show()
