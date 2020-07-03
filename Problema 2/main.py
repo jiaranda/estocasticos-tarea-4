@@ -21,5 +21,5 @@ hist_data = [x]
 
 group_labels = ['distplot'] # name of the dataset
 
-fig = ff.create_distplot(hist_data, group_labels, bin_size=0.02, histnorm='probability')
+fig = ff.create_distplot(hist_data, group_labels, bin_size=0.02)
 fig.show()
